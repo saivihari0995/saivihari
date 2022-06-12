@@ -1,0 +1,214 @@
+{
+	"name": "Df_01",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink3"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select2"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "split2"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "select4"
+				},
+				{
+					"name": "select5"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          empid as short,",
+				"          ename as string,",
+				"          city as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          skey as integer,",
+				"          empid as integer,",
+				"          ename as string,",
+				"          city as string,",
+				"          isactive as integer,",
+				"          fromdate as date,",
+				"          enddate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source2",
+				"source2 select(mapColumn(",
+				"          dim_skey = skey,",
+				"          dim_empid = empid,",
+				"          dim_ename = ename,",
+				"          dim_city = city,",
+				"          dim_isactive = isactive,",
+				"          dim_fromdate = fromdate,",
+				"          dim_enddate = enddate",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"source1 select(mapColumn(",
+				"          int_empid = empid,",
+				"          int_ename = ename,",
+				"          int_city = city",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"select3, select2 join(int_empid == dim_empid,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 split(int_empid==dim_empid,",
+				"     disjoint: false) ~> split1@(matchedrecords, newrecords)",
+				"split1@matchedrecords split((int_empid==dim_empid)&&(int_city==dim_city),",
+				"     disjoint: false) ~> split2@(oldrecords, updatedrecords)",
+				"split2@updatedrecords derive(isactive = 0,",
+				"          city = dim_city,",
+				"          enddate = currentDate('utc')) ~> derivedColumn1",
+				"derivedColumn1 alterRow(updateIf(true())) ~> alterRow1",
+				"alterRow1 select(mapColumn(",
+				"          skey = dim_skey,",
+				"          isactive,",
+				"          city,",
+				"          enddate",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"split1@newrecords select(mapColumn(",
+				"          empid = int_empid,",
+				"          ename = int_ename,",
+				"          city = int_city",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select5",
+				"select4 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          skey as integer,",
+				"          empid as integer,",
+				"          ename as string,",
+				"          city as string,",
+				"          isactive as integer,",
+				"          fromdate as date,",
+				"          enddate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['skey'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          skey,",
+				"          city,",
+				"          isactive,",
+				"          enddate",
+				"     )) ~> sink1",
+				"select5 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          skey as integer,",
+				"          empid as integer,",
+				"          ename as string,",
+				"          city as string,",
+				"          isactive as integer,",
+				"          fromdate as date,",
+				"          enddate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink2",
+				"split2@updatedrecords sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          skey as integer,",
+				"          empid as integer,",
+				"          ename as string,",
+				"          city as string,",
+				"          isactive as integer,",
+				"          fromdate as date,",
+				"          enddate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          empid = int_empid,",
+				"          ename = int_ename,",
+				"          city = int_city",
+				"     )) ~> sink3"
+			]
+		}
+	}
+}
