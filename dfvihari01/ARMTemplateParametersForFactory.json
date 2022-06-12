@@ -4,6 +4,12 @@
 	"parameters": {
 		"factoryName": {
 			"value": "dfvihari01"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://saviharidemo02.dfs.core.windows.net"
+		},
+		"AzureKeyVault2_properties_typeProperties_baseUrl": {
+			"value": "https://kvazviharidemo01.vault.azure.net/"
 		}
 	}
 }
