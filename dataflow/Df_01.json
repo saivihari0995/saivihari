@@ -73,7 +73,7 @@
 			],
 			"scriptLines": [
 				"source(output(",
-				"          empid as short,",
+				"          empid as string,",
 				"          ename as string,",
 				"          city as string",
 				"     ),",

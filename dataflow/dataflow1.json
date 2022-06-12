@@ -1,0 +1,162 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable2",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable2",
+						"type": "DatasetReference"
+					},
+					"name": "source3"
+				},
+				{
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable2",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "split2"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "surrogateKey1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          maxvalue as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select max(cust_skey) as maxvalue from dim_empscd1',",
+				"     format: 'query') ~> source2",
+				"source(output(",
+				"          cust_skey as string,",
+				"          empid as integer,",
+				"          ename as string,",
+				"          city as string,",
+				"          startdate as date,",
+				"          isactive as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select * from dim_empscd1 where isactive=1',",
+				"     format: 'query') ~> source3",
+				"source(output(",
+				"          empid as short,",
+				"          ename as string,",
+				"          city as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 select(mapColumn(",
+				"          src_empid = empid,",
+				"          src_ename = ename,",
+				"          src_city = city",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1, select2 join(src_empid == dim_empid,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"source3 select(mapColumn(",
+				"          dim_cust_skey = cust_skey,",
+				"          dim_empid = empid,",
+				"          dim_ename = ename,",
+				"          dim_city = city,",
+				"          dim_startdate = startdate,",
+				"          dim_isactive = isactive",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"join1 split(src_empid==dim_empid,",
+				"     disjoint: false) ~> split1@(matchedrecords, newrecords)",
+				"split1@matchedrecords split((src_ename==dim_ename)&&(src_city==dim_city),",
+				"     disjoint: false) ~> split2@(oldrecords, updaterecords)",
+				"surrogateKey1 derive(cust_skey = case(isNull(sink1#outputs()[1].maxvalue),0,toInteger(sink1#outputs()[1].maxvalue))+skey) ~> derivedColumn1",
+				"split1@newrecords keyGenerate(output(skey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey1",
+				"source2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     keys:['maxvalue'],",
+				"     store: 'cache',",
+				"     format: 'inline',",
+				"     output: false,",
+				"     saveOrder: 1,",
+				"     mapColumn(",
+				"          maxvalue",
+				"     )) ~> sink1",
+				"split2@updaterecords sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          cust_skey as string,",
+				"          empid as integer,",
+				"          ename as string,",
+				"          city as string,",
+				"          startdate as date,",
+				"          isactive as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          empid = src_empid,",
+				"          ename = src_ename,",
+				"          city = src_city",
+				"     )) ~> sink2"
+			]
+		}
+	}
+}
