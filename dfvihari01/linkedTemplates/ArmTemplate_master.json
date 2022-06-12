@@ -15,6 +15,10 @@
 			"type": "string",
 			"defaultValue": "https://kvazviharidemo01.vault.azure.net/"
 		},
+		"azdbsql01_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "sqlconnectstring"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -47,6 +51,9 @@
 					},
 					"AzureDataLakeStorage1_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+					},
+					"azdbsql01_properties_typeProperties_connectionString_secretName": {
+						"value": "[parameters('azdbsql01_properties_typeProperties_connectionString_secretName')]"
 					}
 				}
 			},

@@ -14,6 +14,10 @@
 		"AzureKeyVault2_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://kvazviharidemo01.vault.azure.net/"
+		},
+		"azdbsql01_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "sqlconnectstring"
 		}
 	},
 	"variables": {
@@ -79,6 +83,28 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/azdbsql01')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "AzureKeyVault2",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "[parameters('azdbsql01_properties_typeProperties_connectionString_secretName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureKeyVault2')]"
+			]
 		}
 	]
 }

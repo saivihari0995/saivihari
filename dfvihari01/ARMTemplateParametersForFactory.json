@@ -10,6 +10,9 @@
 		},
 		"AzureKeyVault2_properties_typeProperties_baseUrl": {
 			"value": "https://kvazviharidemo01.vault.azure.net/"
+		},
+		"azdbsql01_properties_typeProperties_connectionString_secretName": {
+			"value": "sqlconnectstring"
 		}
 	}
 }
